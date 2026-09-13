@@ -16,6 +16,14 @@ pre-commit:
     when: 'always'
   needs: []
 
+non-root-controller:
+  extends: .job
+  stage: test
+  script:
+  - test "$(id -u)" -ne 0
+  - '! sudo -n true'
+  - ansible localhost --connection=local -m setup -a 'filter=ansible_user_uid'
+
 vagrant-validate:
   extends: .job
   stage: test
