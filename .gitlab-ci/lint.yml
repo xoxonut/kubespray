@@ -20,7 +20,5 @@ vagrant-validate:
   extends: .job
   stage: test
   tags: [ffci]
-  variables:
-    VAGRANT_VERSION: 2.3.7
   script:
   - ./tests/scripts/vagrant-validate.sh
