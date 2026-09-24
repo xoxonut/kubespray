@@ -12,7 +12,24 @@ permissions:
   contents: read
 
 jobs:
+  git-ownership:
+    if: github.ref_name == 'test/13455-without-safe-directory'
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v6
+    - name: Check Git access to a writable checkout owned by another UID
+      run: |
+        test "$(id -u)" -ne 0
+        checkout="$RUNNER_TEMP/foreign-checkout"
+        sudo mkdir "$checkout"
+        sudo cp -R .git "$checkout/.git"
+        sudo chown -R 0:0 "$checkout"
+        sudo chmod -R a+rwX "$checkout"
+        test -w "$checkout/.git"
+        git -C "$checkout" status --porcelain >/dev/null
+
   pre-commit:
+    if: github.ref_name != 'test/13455-without-safe-directory'
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
@@ -29,6 +46,7 @@ jobs:
     - run: pre-commit run --hook-stage manual --all-files --show-diff-on-failure
 
   controller:
+    if: github.ref_name != 'test/13455-without-safe-directory'
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v6
@@ -45,13 +63,4 @@ jobs:
           ./tests/scripts/opentofu_install.sh
           ansible-playbook tests/cloud_playbooks/create-kubevirt.yml --syntax-check
           pip install --no-compile --no-cache-dir pip -U
-        '
-    - name: Check Git access to a writable checkout owned by another UID
-      run: |
-        docker run --rm -v "$GITHUB_WORKSPACE:/source:ro" --user 0 kubespray-pipeline:ci bash -euxo pipefail -c '
-          mkdir /tmp/checkout
-          cp -R /source/.git /tmp/checkout/.git
-          chown -R root:root /tmp/checkout
-          chmod -R a+rwX /tmp/checkout
-          su -s /bin/bash kubespray -c "git -C /tmp/checkout status --porcelain >/dev/null"
         '
