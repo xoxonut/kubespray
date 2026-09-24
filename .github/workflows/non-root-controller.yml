@@ -26,7 +26,9 @@ jobs:
         sudo chown -R 0:0 "$checkout"
         sudo chmod -R a+rwX "$checkout"
         test -w "$checkout/.git"
-        git -C "$checkout" status --porcelain >/dev/null
+        stat -c 'checkout owner: %u:%g' "$checkout"
+        git config --show-origin --get-all safe.directory || true
+        GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null git -C "$checkout" status --porcelain >/dev/null
 
   pre-commit:
     if: github.ref_name != 'test/13455-without-safe-directory'
