@@ -5,6 +5,7 @@ on:
   push:
     branches:
     - test/13455-non-root-controller
+    - test/13455-without-safe-directory
   workflow_dispatch:
 
 permissions:
@@ -44,4 +45,13 @@ jobs:
           ./tests/scripts/opentofu_install.sh
           ansible-playbook tests/cloud_playbooks/create-kubevirt.yml --syntax-check
           pip install --no-compile --no-cache-dir pip -U
+        '
+    - name: Check Git access to a writable checkout owned by another UID
+      run: |
+        docker run --rm -v "$GITHUB_WORKSPACE:/source:ro" --user 0 kubespray-pipeline:ci bash -euxo pipefail -c '
+          mkdir /tmp/checkout
+          cp -R /source/.git /tmp/checkout/.git
+          chown -R root:root /tmp/checkout
+          chmod -R a+rwX /tmp/checkout
+          su -s /bin/bash kubespray -c "git -C /tmp/checkout status --porcelain >/dev/null"
         '
